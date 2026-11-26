@@ -1,0 +1,294 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (
+          'email_verified' in request.auth.token &&
+          request.auth.token.email_verified == true &&
+          'email' in request.auth.token &&
+          request.auth.token.email == 'imranabdulshakoor00@gmail.com'
+        )
+      );
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.username is string && data.username.size() >= 3 && data.username.size() <= 30 &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 60 &&
+             data.email is string && data.email.size() <= 120 &&
+             data.avatarKey is string && data.avatarKey.size() >= 1 && data.avatarKey.size() <= 30 &&
+             data.coinBalance is int && data.coinBalance >= 0 && data.coinBalance <= 100000000 &&
+             data.dailyRewardPoints is int && data.dailyRewardPoints >= 0 && data.dailyRewardPoints <= 100000000 &&
+             data.totalGamesPlayed is int && data.totalGamesPlayed >= 0 && data.totalGamesPlayed <= 10000000 &&
+             data.totalRewardsEarned is int && data.totalRewardsEarned >= 0 && data.totalRewardsEarned <= 100000000 &&
+             data.loginStreak is int && data.loginStreak >= 0 && data.loginStreak <= 3650 &&
+             data.lastDailyClaimDay is string && data.lastDailyClaimDay.size() <= 20 &&
+             data.lastWheelSpinDay is string && data.lastWheelSpinDay.size() <= 20 &&
+             data.dailyWheelSpinsUsed is int && data.dailyWheelSpinsUsed >= 0 && data.dailyWheelSpinsUsed <= 100 &&
+             data.accountStatus in ['ACTIVE', 'DISABLED'] &&
+             data.role in ['PLAYER', 'ADMIN'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTransaction(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.type in ['WELCOME_BONUS', 'DAILY_BONUS', 'GAME_WIN', 'GAME_ENTRY', 'ADMIN_ADJUST', 'WHEEL_SPIN'] &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 80 &&
+             data.amount is int && data.amount >= -1000000 && data.amount <= 1000000 &&
+             data.balanceAfter is int && data.balanceAfter >= 0 && data.balanceAfter <= 100000000 &&
+             (!('gameId' in data) || (data.gameId is string && data.gameId.size() <= 40)) &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidGameHistory(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.gameId in ['lucky_wheel', 'slot_machine', 'dice_game', 'card_reveal', 'lucky_number', 'memory_match'] &&
+             data.gameName is string && data.gameName.size() >= 1 && data.gameName.size() <= 50 &&
+             data.outcome in ['WIN', 'LOSS', 'DRAW', 'REWARD'] &&
+             data.entryCoins is int && data.entryCoins >= 0 && data.entryCoins <= 1000000 &&
+             data.rewardCoins is int && data.rewardCoins >= 0 && data.rewardCoins <= 1000000 &&
+             data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 120 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidNotification(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.category in ['DAILY_REWARD', 'NEW_GAME', 'ANNOUNCEMENT', 'ACHIEVEMENT', 'SYSTEM'] &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 80 &&
+             data.body is string && data.body.size() >= 1 && data.body.size() <= 300 &&
+             data.readStatus in ['UNREAD', 'READ'] &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidLeaderboardEntry(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.username is string && data.username.size() >= 3 && data.username.size() <= 30 &&
+             data.avatarKey is string && data.avatarKey.size() >= 1 && data.avatarKey.size() <= 30 &&
+             data.weeklyPoints is int && data.weeklyPoints >= 0 && data.weeklyPoints <= 100000000 &&
+             data.monthlyPoints is int && data.monthlyPoints >= 0 && data.monthlyPoints <= 100000000 &&
+             data.allTimePoints is int && data.allTimePoints >= 0 && data.allTimePoints <= 100000000 &&
+             data.totalGamesPlayed is int && data.totalGamesPlayed >= 0 && data.totalGamesPlayed <= 10000000 &&
+             data.entryType in ['PLAYER', 'SAMPLE_DEMO'] &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAnnouncement(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.message is string && data.message.size() >= 1 && data.message.size() <= 500 &&
+             data.badge is string && data.badge.size() >= 1 && data.badge.size() <= 30 &&
+             data.authorEmail is string && data.authorEmail.size() <= 120 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidAppConfig(data) {
+      return data.dailyBaseBonus is int && data.dailyBaseBonus >= 50 && data.dailyBaseBonus <= 10000 &&
+             data.dailyStreakIncrement is int && data.dailyStreakIncrement >= 0 && data.dailyStreakIncrement <= 2000 &&
+             data.maxDailyWheelSpins is int && data.maxDailyWheelSpins >= 1 && data.maxDailyWheelSpins <= 50 &&
+             data.disabledGames is list && data.disabledGames.size() <= 10 &&
+             (data.disabledGames.size() == 0 || data.disabledGames[0] is string) &&
+             data.maintenanceBanner is string && data.maintenanceBanner.size() <= 200 &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidActivityLog(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.username is string && data.username.size() >= 1 && data.username.size() <= 30 &&
+             data.action is string && data.action.size() >= 1 && data.action.size() <= 60 &&
+             data.detail is string && data.detail.size() >= 1 && data.detail.size() <= 160 &&
+             data.pointsDelta is int && data.pointsDelta >= -1000000 && data.pointsDelta <= 1000000 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidAdminRole(data) {
+      return data.role == 'ADMIN' &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'username', 'fullName', 'email', 'avatarKey', 'coinBalance',
+                         'dailyRewardPoints', 'totalGamesPlayed', 'totalRewardsEarned',
+                         'loginStreak', 'lastDailyClaimDay', 'lastWheelSpinDay',
+                         'dailyWheelSpinsUsed', 'accountStatus', 'role', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'username', 'fullName', 'email', 'avatarKey', 'coinBalance',
+                         'dailyRewardPoints', 'totalGamesPlayed', 'totalRewardsEarned',
+                         'loginStreak', 'lastDailyClaimDay', 'lastWheelSpinDay',
+                         'dailyWheelSpinsUsed', 'accountStatus', 'role', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().accountStatus == 'ACTIVE' &&
+                       (incoming().role == 'PLAYER' || isAdmin());
+      allow update: if isValidId(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         isAdmin() ||
+                         (
+                           isOwner(userId) &&
+                           existing().accountStatus == 'ACTIVE' &&
+                           incoming().accountStatus == existing().accountStatus &&
+                           incoming().role == existing().role &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'username', 'fullName', 'avatarKey', 'coinBalance',
+                             'dailyRewardPoints', 'totalGamesPlayed', 'totalRewardsEarned',
+                             'loginStreak', 'lastDailyClaimDay', 'lastWheelSpinDay',
+                             'dailyWheelSpinsUsed', 'updatedAt'
+                           ])
+                         )
+                       );
+      allow delete: if isValidId(userId) && isAdmin();
+
+      match /transactions/{txId} {
+        allow get: if isValidId(userId) && isValidId(txId) && (isOwner(userId) || isAdmin());
+        allow list: if isOwner(userId) || isAdmin();
+        allow create: if isValidId(userId) && isValidId(txId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         isValidTransaction(incoming(), userId) &&
+                         incoming().keys().hasAll(['userId', 'type', 'title', 'amount', 'balanceAfter', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'type', 'title', 'amount', 'balanceAfter', 'gameId', 'createdAt']);
+        allow update, delete: if isValidId(userId) && isValidId(txId) && isAdmin();
+      }
+
+      match /gameHistory/{historyId} {
+        allow get: if isValidId(userId) && isValidId(historyId) && (isOwner(userId) || isAdmin());
+        allow list: if isOwner(userId) || isAdmin();
+        allow create: if isValidId(userId) && isValidId(historyId) &&
+                         isOwner(userId) &&
+                         isValidGameHistory(incoming(), userId) &&
+                         incoming().keys().hasAll(['userId', 'gameId', 'gameName', 'outcome', 'entryCoins', 'rewardCoins', 'summary', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'gameId', 'gameName', 'outcome', 'entryCoins', 'rewardCoins', 'summary', 'createdAt']);
+        allow update, delete: if isValidId(userId) && isValidId(historyId) && isAdmin();
+      }
+
+      match /notifications/{notifId} {
+        allow get: if isValidId(userId) && isValidId(notifId) && (isOwner(userId) || isAdmin());
+        allow list: if isOwner(userId) || isAdmin();
+        allow create: if isValidId(userId) && isValidId(notifId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         isValidNotification(incoming(), userId) &&
+                         incoming().keys().hasAll(['userId', 'category', 'title', 'body', 'readStatus', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'category', 'title', 'body', 'readStatus', 'createdAt']);
+        allow update: if isValidId(userId) && isValidId(notifId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         isValidNotification(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['readStatus']);
+        allow delete: if isValidId(userId) && isValidId(notifId) && (isOwner(userId) || isAdmin());
+      }
+    }
+
+    match /leaderboard/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if isSignedIn();
+      allow create: if isValidId(userId) &&
+                       isValidLeaderboardEntry(incoming(), userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'username', 'avatarKey', 'weeklyPoints', 'monthlyPoints',
+                         'allTimePoints', 'totalGamesPlayed', 'entryType', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'username', 'avatarKey', 'weeklyPoints', 'monthlyPoints',
+                         'allTimePoints', 'totalGamesPlayed', 'entryType', 'updatedAt'
+                       ]) &&
+                       ((isOwner(userId) && incoming().entryType == 'PLAYER') || isAdmin());
+      allow update: if isValidId(userId) &&
+                       isValidLeaderboardEntry(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       (
+                         isAdmin() ||
+                         (
+                           isOwner(userId) &&
+                           incoming().entryType == 'PLAYER' &&
+                           existing().entryType == 'PLAYER' &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'username', 'avatarKey', 'weeklyPoints', 'monthlyPoints',
+                             'allTimePoints', 'totalGamesPlayed', 'updatedAt'
+                           ])
+                         )
+                       );
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    match /announcements/{announcementId} {
+      allow get: if isSignedIn() && isValidId(announcementId);
+      allow list: if isSignedIn();
+      allow create: if isAdmin() && isValidId(announcementId) &&
+                       isValidAnnouncement(incoming()) &&
+                       incoming().keys().hasAll(['title', 'message', 'badge', 'authorEmail', 'createdAt']) &&
+                       incoming().keys().hasOnly(['title', 'message', 'badge', 'authorEmail', 'createdAt']);
+      allow update: if isAdmin() && isValidId(announcementId) &&
+                       isValidAnnouncement(incoming()) &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(announcementId);
+    }
+
+    match /appConfig/{configId} {
+      allow get: if isSignedIn() && isValidId(configId);
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && isValidId(configId) &&
+                               isValidAppConfig(incoming()) &&
+                               incoming().keys().hasAll(['dailyBaseBonus', 'dailyStreakIncrement', 'maxDailyWheelSpins', 'disabledGames', 'maintenanceBanner', 'updatedAt']) &&
+                               incoming().keys().hasOnly(['dailyBaseBonus', 'dailyStreakIncrement', 'maxDailyWheelSpins', 'disabledGames', 'maintenanceBanner', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /activityLogs/{logId} {
+      allow get: if isValidId(logId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isValidId(logId) &&
+                       isSignedIn() &&
+                       incoming().userId == request.auth.uid &&
+                       isValidActivityLog(incoming()) &&
+                       incoming().keys().hasAll(['userId', 'username', 'action', 'detail', 'pointsDelta', 'createdAt']) &&
+                       incoming().keys().hasOnly(['userId', 'username', 'action', 'detail', 'pointsDelta', 'createdAt']);
+      allow update, delete: if isAdmin() && isValidId(logId);
+    }
+
+    match /admins/{uid} {
+      allow get: if isValidId(uid) && (isOwner(uid) || isAdmin());
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin() && isValidId(uid) &&
+                                       (request.method == 'delete' || isValidAdminRole(incoming()));
+    }
+  }
+}

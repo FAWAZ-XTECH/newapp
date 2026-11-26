@@ -1,0 +1,186 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Player account profile, virtual coin wallet summary, daily reward streak, and account status.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the owner." },
+        "username": { "type": "string", "description": "Unique display handle (3-30 chars)." },
+        "fullName": { "type": "string", "description": "Player full name (1-60 chars)." },
+        "email": { "type": "string", "description": "Player email address (PII, owner/admin only)." },
+        "avatarKey": { "type": "string", "description": "Selected avatar key." },
+        "coinBalance": { "type": "integer", "description": "Virtual demo coin balance." },
+        "dailyRewardPoints": { "type": "integer", "description": "Cumulative virtual points earned from daily rewards." },
+        "totalGamesPlayed": { "type": "integer", "description": "Total mini-game rounds played." },
+        "totalRewardsEarned": { "type": "integer", "description": "Cumulative virtual coins earned." },
+        "loginStreak": { "type": "integer", "description": "Consecutive daily reward streak." },
+        "lastDailyClaimDay": { "type": "string", "description": "UTC date string YYYY-MM-DD of last daily bonus claim." },
+        "lastWheelSpinDay": { "type": "string", "description": "UTC date string YYYY-MM-DD of last Lucky Wheel spin." },
+        "dailyWheelSpinsUsed": { "type": "integer", "description": "Lucky Wheel spins used on lastWheelSpinDay." },
+        "accountStatus": { "type": "string", "enum": ["ACTIVE", "DISABLED"], "description": "Account activation status controlled by admins." },
+        "role": { "type": "string", "enum": ["PLAYER", "ADMIN"], "description": "User role." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": [
+        "userId", "username", "fullName", "email", "avatarKey", "coinBalance",
+        "dailyRewardPoints", "totalGamesPlayed", "totalRewardsEarned",
+        "loginStreak", "lastDailyClaimDay", "lastWheelSpinDay",
+        "dailyWheelSpinsUsed", "accountStatus", "role", "createdAt", "updatedAt"
+      ]
+    },
+    "WalletTransaction": {
+      "title": "WalletTransaction",
+      "description": "Virtual wallet coin activity entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["WELCOME_BONUS", "DAILY_BONUS", "GAME_WIN", "GAME_ENTRY", "ADMIN_ADJUST", "WHEEL_SPIN"] },
+        "title": { "type": "string" },
+        "amount": { "type": "integer" },
+        "balanceAfter": { "type": "integer" },
+        "gameId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "type", "title", "amount", "balanceAfter", "createdAt"]
+    },
+    "GameHistoryRecord": {
+      "title": "GameHistoryRecord",
+      "description": "Mini-game play result record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "gameId": { "type": "string", "enum": ["lucky_wheel", "slot_machine", "dice_game", "card_reveal", "lucky_number", "memory_match"] },
+        "gameName": { "type": "string" },
+        "outcome": { "type": "string", "enum": ["WIN", "LOSS", "DRAW", "REWARD"] },
+        "entryCoins": { "type": "integer" },
+        "rewardCoins": { "type": "integer" },
+        "summary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "gameId", "gameName", "outcome", "entryCoins", "rewardCoins", "summary", "createdAt"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "In-app notification item for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "category": { "type": "string", "enum": ["DAILY_REWARD", "NEW_GAME", "ANNOUNCEMENT", "ACHIEVEMENT", "SYSTEM"] },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "readStatus": { "type": "string", "enum": ["UNREAD", "READ"] },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "category", "title", "body", "readStatus", "createdAt"]
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Public non-PII leaderboard score entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "avatarKey": { "type": "string" },
+        "weeklyPoints": { "type": "integer" },
+        "monthlyPoints": { "type": "integer" },
+        "allTimePoints": { "type": "integer" },
+        "totalGamesPlayed": { "type": "integer" },
+        "entryType": { "type": "string", "enum": ["PLAYER", "SAMPLE_DEMO"] },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "username", "avatarKey", "weeklyPoints", "monthlyPoints", "allTimePoints", "totalGamesPlayed", "entryType", "updatedAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Platform announcement published by admins.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "badge": { "type": "string" },
+        "authorEmail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["title", "message", "badge", "authorEmail", "createdAt"]
+    },
+    "AppConfig": {
+      "title": "AppConfig",
+      "description": "Admin-managed game availability and daily reward settings.",
+      "type": "object",
+      "properties": {
+        "dailyBaseBonus": { "type": "integer" },
+        "dailyStreakIncrement": { "type": "integer" },
+        "maxDailyWheelSpins": { "type": "integer" },
+        "disabledGames": { "type": "array" },
+        "maintenanceBanner": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["dailyBaseBonus", "dailyStreakIncrement", "maxDailyWheelSpins", "disabledGames", "maintenanceBanner", "updatedAt"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Audit log of game and reward activity.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "action": { "type": "string" },
+        "detail": { "type": "string" },
+        "pointsDelta": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "username", "action", "detail", "pointsDelta", "createdAt"]
+    },
+    "AdminRole": {
+      "title": "AdminRole",
+      "description": "Admin RBAC marker document.",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["ADMIN"] },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["role", "email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user account, profile, wallet balance, and streak state."
+    },
+    "/users/{userId}/transactions/{txId}": {
+      "schema": { "$ref": "#/entities/WalletTransaction" },
+      "description": "User virtual wallet activity log."
+    },
+    "/users/{userId}/gameHistory/{historyId}": {
+      "schema": { "$ref": "#/entities/GameHistoryRecord" },
+      "description": "User mini-game play history."
+    },
+    "/users/{userId}/notifications/{notifId}": {
+      "schema": { "$ref": "#/entities/AppNotification" },
+      "description": "User notifications with read/unread tracking."
+    },
+    "/leaderboard/{userId}": {
+      "schema": { "$ref": "#/entities/LeaderboardEntry" },
+      "description": "Public non-PII leaderboard entries."
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Global platform announcements."
+    },
+    "/appConfig/{configId}": {
+      "schema": { "$ref": "#/entities/AppConfig" },
+      "description": "Global admin configuration document."
+    },
+    "/activityLogs/{logId}": {
+      "schema": { "$ref": "#/entities/ActivityLog" },
+      "description": "User-scoped and admin-auditable activity logs."
+    },
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminRole" },
+      "description": "Server-side admin RBAC directory."
+    }
+  }
+}

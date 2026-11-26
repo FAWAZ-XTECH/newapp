@@ -1,0 +1,6 @@
+{
+  "name": "M9999 Demo Play",
+  "description": "Free-to-play demo arcade gaming application with virtual coins, six mini-games, daily rewards, leaderboard, and admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
